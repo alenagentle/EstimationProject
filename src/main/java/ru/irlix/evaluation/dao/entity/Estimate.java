@@ -49,6 +49,6 @@ public class Estimate {
     private String creator;
 
     @OneToMany(mappedBy = "estimate")
-    private List<Phase> phase;
+    private List<Phase> phases;
 
 }
