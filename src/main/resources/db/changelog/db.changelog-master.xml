@@ -7,5 +7,6 @@
     
     <include file="create-table-estimate.xml" relativeToChangelogFile="true"/>
     <include file="create-table-phase.xml" relativeToChangelogFile="true"/>
+    <include file="create-table-status_dictionary.xml" relativeToChangelogFile="true"/>
     
 </databaseChangeLog>
