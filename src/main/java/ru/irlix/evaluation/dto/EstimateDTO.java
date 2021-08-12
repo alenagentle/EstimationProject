@@ -3,13 +3,14 @@ package ru.irlix.evaluation.dto;
 import lombok.Data;
 import ru.irlix.evaluation.dao.entity.StatusDictionary;
 
+import java.time.Instant;
 import java.util.List;
 
 @Data
 public class EstimateDTO {
     private Long id;
     private String name;
-    private String createDate;
+    private Instant createDate;
     private String description;
     private Integer risk;
     private StatusDictionary status;
