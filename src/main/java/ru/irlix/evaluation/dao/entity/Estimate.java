@@ -28,8 +28,8 @@ import java.util.List;
 public class Estimate {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ESTIMATES_SEQ")
-    @SequenceGenerator(name = "ESTIMATES_SEQ", sequenceName = "SEQUENCE_ESTIMATES", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "estimate_seq")
+    @SequenceGenerator(name = "estimate_seq", sequenceName = "estimate_id_seq", allocationSize = 1)
     @Column(name = "id")
     private Long id;
     @Column(name = "name")
@@ -42,8 +42,8 @@ public class Estimate {
     private Integer risk;
 
     @ManyToOne
-    @JoinColumn(name = "status", foreignKey = @ForeignKey(name="FK_STATUS"))
-    private StatusDictionary status;
+    @JoinColumn(name = "status", foreignKey = @ForeignKey(name="fk_status"))
+    private Status status;
 
     @Column(name = "client")
     private String client;

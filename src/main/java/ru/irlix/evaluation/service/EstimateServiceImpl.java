@@ -15,16 +15,8 @@ public class EstimateServiceImpl implements EstimateService{
     private EstimateMapper mapper;
 
     @Override
-    public boolean saveEstimate(EstimateDTO estimateDTO) {
-
+    public void saveEstimate(EstimateDTO estimateDTO) {
         Estimate estimate = mapper.estimateDtoToEstimate(estimateDTO);
-//        System.out.println("exists: " + estimateRepository.existsEstimateById(estimate.getId()));
-//        if(estimateRepository.existsEstimateById(estimate.getId()))
-//        {
-//            return false;
-//        }
-//        else
-            estimateRepository.save(estimate);
-        return true;
+        estimateRepository.save(estimate);
     }
 }

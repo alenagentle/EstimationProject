@@ -1,7 +1,7 @@
 package ru.irlix.evaluation.dto;
 
 import lombok.Data;
-import ru.irlix.evaluation.dao.entity.StatusDictionary;
+import ru.irlix.evaluation.dao.entity.Status;
 
 import java.time.Instant;
 import java.util.List;
@@ -13,7 +13,7 @@ public class EstimateDTO {
     private Instant createDate;
     private String description;
     private Integer risk;
-    private StatusDictionary status;
+    private Status status;
     private String client;
     private String creator;
     private List<PhaseDTO> phases;
