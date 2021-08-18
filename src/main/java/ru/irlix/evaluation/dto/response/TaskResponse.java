@@ -1,11 +1,20 @@
 package ru.irlix.evaluation.dto.response;
 
 import lombok.Data;
-import ru.irlix.evaluation.dao.entity.Phase;
 
 @Data
 public class TaskResponse {
     private Long id;
     private String name;
-    private Phase phase;
+    private Integer repeatCount;
+    private Integer bagsReserve;
+    private Integer qaReserve;
+    private Integer managementReserve;
+    private Integer riskReserve;
+    private String comment;
+    private Integer hoursMin;
+    private Integer hoursMax;
+    private PhaseResponse phase;
+    private RoleResponse role;
+    private Integer parent;
 }

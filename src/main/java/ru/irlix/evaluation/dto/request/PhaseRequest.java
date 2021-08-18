@@ -1,9 +1,6 @@
 package ru.irlix.evaluation.dto.request;
 
 import lombok.*;
-import ru.irlix.evaluation.dao.entity.Task;
-
-import java.util.List;
 
 @Data
 public class PhaseRequest {
@@ -19,5 +16,4 @@ public class PhaseRequest {
     private Boolean managementReserveOn;
     private Boolean qaReserveOn;
     private Boolean bagsReserveOn;
-//    private List<Task> tasks;
 }
