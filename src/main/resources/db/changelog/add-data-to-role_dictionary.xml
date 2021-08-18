@@ -7,22 +7,22 @@
 
     <changeSet author="kiseleva_ev" id="add-data-to-role_dictionary">
         <insert  tableName="role_dictionary">
-            <column  name="id"  valueSequenceNext="role_id_seq"/>
+            <column  name="id"  valueSequenceNext="role_dictionary_id_seq"/>
             <column  name="value"  value="analyst"/>
             <column  name="display_value"  value="аналитик"/>
         </insert>
         <insert  tableName="role_dictionary">
-            <column  name="id"  valueSequenceNext="role_id_seq"/>
+            <column  name="id"  valueSequenceNext="role_dictionary_id_seq"/>
             <column  name="value"  value="designer"/>
             <column  name="display_value"  value="в дизайнер"/>
         </insert>
         <insert  tableName="role_dictionary">
-            <column  name="id"  valueSequenceNext="role_id_seq"/>
+            <column  name="id"  valueSequenceNext="role_dictionary_id_seq"/>
             <column  name="value"  value="tester"/>
             <column  name="display_value"  value="тестировщик"/>
         </insert>
         <insert  tableName="role_dictionary">
-            <column  name="id"  valueSequenceNext="role_id_seq"/>
+            <column  name="id"  valueSequenceNext="role_dictionary_id_seq"/>
             <column  name="value"  value="developer"/>
             <column  name="display_value"  value="разработчик"/>
         </insert>

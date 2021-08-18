@@ -8,24 +8,18 @@ import javax.persistence.*;
 import java.util.List;
 
 @Entity
+@Table(name = "task_type_dictionary")
 @Getter
 @Setter
 @NoArgsConstructor
-@Table(name="role_dictionary")
-public class Role {
+public class TaskTypeDictionary {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
     private Long id;
 
-    @Column(name = "value")
     private String value;
 
-    @Column(name = "display_value")
-    private String displayValue;
-
-    @OneToMany(mappedBy = "role")
-    private List <Task> tasks;
-
+    @OneToMany(mappedBy = "type")
+    private List<Task> taskList;
 }
