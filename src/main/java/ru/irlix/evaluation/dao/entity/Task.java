@@ -1,16 +1,19 @@
 package ru.irlix.evaluation.dao.entity;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
-@Table(name="task")
+@Table(name = "task")
 @Getter
 @Setter
-@NoArgsConstructor
+@NamedEntityGraph(
+        name = "task.tasks",
+        attributeNodes = @NamedAttributeNode("tasks")
+)
 public class Task {
 
     @Id
@@ -21,7 +24,7 @@ public class Task {
     @Column(name = "name")
     private String name;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "type")
     private TaskTypeDictionary type;
 
@@ -37,26 +40,75 @@ public class Task {
     @Column(name = "management_reserve")
     private Integer managementReserve;
 
-    @Column(name = "risk_reserve")
-    private Integer riskReserve;
-
     @Column(name = "comment")
     private String comment;
 
     @Column(name = "hours_min")
-    private Integer hoursMin;
+    private Double hoursMin;
 
     @Column(name = "hours_max")
-    private Integer hoursMax;
+    private Double hoursMax;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "phase")
     private Phase phase;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "estimation_role")
     private Role role;
 
-    @Column(name = "parent")
-    private Integer parent;
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Task parent;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.REMOVE)
+    @OrderBy("id ASC")
+    private List<Task> tasks;
+
+    @Column(name = "bags_reserve_on")
+    private Boolean bagsReserveOn;
+
+    @Column(name = "qa_reserve_on")
+    private Boolean qaReserveOn;
+
+    @Column(name = "management_reserve_on")
+    private Boolean managementReserveOn;
+
+    @PrePersist
+    public void prePersist() {
+        if (hoursMax == null) {
+            hoursMax = 0.0;
+        }
+
+        if (hoursMin == null) {
+            hoursMin = 0.0;
+        }
+
+        if (repeatCount == null) {
+            repeatCount = 1;
+        }
+
+        if (bagsReserveOn == null) {
+            bagsReserveOn = false;
+        }
+
+        if (qaReserveOn == null) {
+            qaReserveOn = false;
+        }
+
+        if (managementReserveOn == null) {
+            managementReserveOn = false;
+        }
+
+        if (bagsReserve == null) {
+            bagsReserve = 0;
+        }
+
+        if (qaReserve == null) {
+            qaReserve = 0;
+        }
+
+        if (managementReserve == null) {
+            managementReserve = 0;
+        }
+    }
 }

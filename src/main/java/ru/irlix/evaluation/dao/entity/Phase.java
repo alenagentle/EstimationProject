@@ -1,19 +1,20 @@
 package ru.irlix.evaluation.dao.entity;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Where;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Entity
-@Table(name="phase")
+@Table(name = "phase")
 @Getter
 @Setter
-@NoArgsConstructor
+@NamedEntityGraph(
+        name = "phase.tasks",
+        attributeNodes = @NamedAttributeNode("tasks")
+)
 public class Phase {
 
     @Id
@@ -21,16 +22,17 @@ public class Phase {
     @Column(name = "id")
     private Long id;
 
-    @NotBlank(message = "Name is mandatory")
     @Column(name = "name")
     private String name;
 
-    @NotNull(message = "estimation is mandatory")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "estimation")
     private Estimation estimation;
 
-    @NotNull(message = "sort_order is mandatory")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @Column(name = "sort_order")
     private Integer sortOrder;
 
@@ -46,7 +48,9 @@ public class Phase {
     @Column(name = "risk_reserve")
     private Integer riskReserve;
 
-    @OneToMany(mappedBy = "phase", fetch = FetchType.LAZY, cascade = CascadeType.ALL )
+    @OneToMany(mappedBy = "phase", cascade = CascadeType.ALL)
+    @Where(clause = "parent_id IS NULL")
+    @OrderBy("id ASC")
     private List<Task> tasks;
 
     @Column(name = "done")
@@ -63,5 +67,4 @@ public class Phase {
 
     @Column(name = "risk_reserve_on")
     private Boolean riskReserveOn;
-
 }

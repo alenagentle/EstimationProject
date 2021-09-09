@@ -17,11 +17,8 @@
             <column name="bags_reserve" type="INT"/>
             <column name="qa_reserve" type="INT"/>
             <column name="risk_reserve" type="INT"/>
+            <column name="estimation_role" type="BIGINT"/>
             <column name="done" type="BOOLEAN"/>
-            <column name="bags_reserve_on" type="BOOLEAN"/>
-            <column name="qa_reserve_on" type="BOOLEAN"/>
-            <column name="management_reserve_on" type="BOOLEAN"/>
-            <column name="risk_reserve_on" type="BOOLEAN"/>
         </createTable>
     </changeSet>
 

@@ -1,13 +1,10 @@
 package ru.irlix.evaluation.dao.entity;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
-
 import javax.persistence.*;
-
 import java.time.Instant;
 import java.util.List;
 
@@ -15,7 +12,10 @@ import java.util.List;
 @Table(name="estimation")
 @Getter
 @Setter
-@NoArgsConstructor
+@NamedEntityGraph(
+    name = "estimation.phases",
+    attributeNodes = @NamedAttributeNode("phases")
+)
 public class Estimation {
 
     @Id
@@ -26,8 +26,8 @@ public class Estimation {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "create_date")
     @CreationTimestamp
+    @Column(name = "create_date")
     private Instant createDate;
 
     @Column(name = "description")
@@ -36,7 +36,7 @@ public class Estimation {
     @Column(name = "risk")
     private Integer risk;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "status")
     private Status status;
 
@@ -46,6 +46,23 @@ public class Estimation {
     @Column(name = "creator")
     private String creator;
 
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "estimation")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "estimation")
+    @OrderBy("sortOrder ASC")
     private List<Phase> phases;
+
+    @ManyToMany(mappedBy = "estimations")
+    private List<User> users;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinTable(name = "user_estimation",
+            joinColumns = @JoinColumn(name = "estimation_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id"))
+    private Role role;
+
+    @PrePersist
+    public void prePersist() {
+        if (risk == null) {
+            risk = 0;
+        }
+    }
 }

@@ -8,10 +8,9 @@ import javax.persistence.*;
 import java.util.List;
 
 @Entity
+@Table(name = "role_dictionary")
 @Getter
 @Setter
-@NoArgsConstructor
-@Table(name="role_dictionary")
 public class Role {
 
     @Id
@@ -26,6 +25,11 @@ public class Role {
     private String displayValue;
 
     @OneToMany(mappedBy = "role")
-    private List <Task> tasks;
+    private List<Task> tasks;
 
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "role")
+    private List<User> users;
+
+    @OneToMany(mappedBy = "role")
+    private List<Estimation> estimations;
 }

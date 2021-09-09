@@ -10,7 +10,6 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-    show:-sql: true
     hibernate:
       ddl-auto: validate
 
@@ -22,3 +21,11 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.xml
     enabled: true
 
+logging:
+  file:
+    name: ${LOG_PATH:estimation.log}
+  pattern:
+    console: '%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID}){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(%M{20}){magenta} %clr(:){faint} %m%n}}'
+    file: '%d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${PID} --- [%t] %-40.40logger{39} %M{20} : %m%n}'
+
+document-path: ${DOC_PATH:report.xls}

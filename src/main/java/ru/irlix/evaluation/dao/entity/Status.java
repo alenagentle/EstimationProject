@@ -8,11 +8,11 @@ import javax.persistence.*;
 import java.util.List;
 
 @Entity
+@Table(name="status_dictionary")
 @Getter
 @Setter
-@NoArgsConstructor
-@Table(name="status_dictionary")
 public class Status {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
