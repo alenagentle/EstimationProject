@@ -3,16 +3,15 @@ package ru.irlix.evaluation.exception;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
-import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import ru.irlix.evaluation.config.UTF8Control;
-import ru.irlix.evaluation.utils.constant.LocaleConstants;
+import ru.irlix.evaluation.utils.localization.MessageBundle;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
-import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
@@ -20,8 +19,7 @@ import java.util.stream.Collectors;
 @ControllerAdvice
 public class AppExceptionHandler {
 
-    private final Locale locale = LocaleConstants.DEFAULT_LOCALE;
-    private final ResourceBundle messageBundle = ResourceBundle.getBundle("messages", locale, new UTF8Control());
+    private final ResourceBundle messageBundle = MessageBundle.getMessageBundle();
     private final String errorMessage = messageBundle.getString("validation.error");
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -42,15 +40,35 @@ public class AppExceptionHandler {
         return new ResponseEntity<>(apiError, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler({AccessDeniedException.class})
+    protected ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException e) {
+        ApiError apiError = new ApiError(e.getMessage());
+        log.error(e.getMessage());
+        return new ResponseEntity<>(apiError, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler({IllegalArgumentException.class})
+    protected ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException e) {
+        ApiError apiError = new ApiError(e.getMessage());
+        log.error(e.getMessage());
+        return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(BindException.class)
     protected ResponseEntity<Object> handleBindException(BindException ex) {
         ApiError apiError = new ApiError(errorMessage);
-        apiError.setErrors(ex.getBindingResult()
-                .getFieldErrors()
+        apiError.setErrors(ex.getAllErrors()
                 .stream()
-                .map(FieldError::getDefaultMessage)
+                .map(ObjectError::getDefaultMessage)
                 .collect(Collectors.toList()));
         log.error(apiError.getMessage() + " " + apiError.getErrors());
+        return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(StorageException.class)
+    protected ResponseEntity<Object> handleStorageException(StorageException ex) {
+        ApiError apiError = new ApiError(ex.getMessage());
+        log.error(ex.getMessage());
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
     }
 }

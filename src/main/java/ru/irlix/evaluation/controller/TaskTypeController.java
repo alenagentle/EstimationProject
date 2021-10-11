@@ -2,6 +2,7 @@ package ru.irlix.evaluation.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.irlix.evaluation.dto.request.TaskTypeRequest;
@@ -23,19 +24,22 @@ public class TaskTypeController {
 
     private final TaskTypeService taskTypeService;
 
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PostMapping
-    public TaskTypeResponse createTaskType(@Valid TaskTypeRequest request) {
+    public TaskTypeResponse createTaskType(@RequestBody @Valid TaskTypeRequest request) {
         log.info(UrlConstants.RECEIVED_ENTITY);
         return taskTypeService.createTaskType(request);
     }
 
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/{id}")
     public TaskTypeResponse updateTaskType(@PathVariable @Positive(message = "{id.positive}") Long id,
-                                           @Valid TaskTypeRequest request) {
+                                           @RequestBody @Valid TaskTypeRequest request) {
         log.info(UrlConstants.RECEIVED_ENTITY_ID + id);
         return taskTypeService.updateTaskType(id, request);
     }
 
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public void deleteTaskType(@PathVariable @Positive(message = "{id.positive}") Long id) {
         log.info(UrlConstants.RECEIVED_ID + id);

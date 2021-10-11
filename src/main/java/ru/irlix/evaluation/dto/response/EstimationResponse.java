@@ -4,11 +4,13 @@ import lombok.*;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class EstimationResponse {
 
     private Long id;
@@ -27,5 +29,13 @@ public class EstimationResponse {
 
     private Long status;
 
+    private Double hoursMin;
+
+    private Double hoursMax;
+
     private List<PhaseResponse> phases;
+
+    private List<UserResponse> users;
+
+    private Map<Long, String> fileMap;
 }

@@ -3,18 +3,19 @@ package ru.irlix.evaluation.utils.report.sheet;
 import org.apache.poi.ss.usermodel.Row;
 import ru.irlix.evaluation.dao.entity.Estimation;
 import ru.irlix.evaluation.dao.entity.Phase;
-import ru.irlix.evaluation.dto.request.ReportRequest;
+import ru.irlix.evaluation.utils.math.EstimationMath;
 import ru.irlix.evaluation.utils.report.ExcelWorkbook;
-import ru.irlix.evaluation.utils.report.math.ReportMath;
+
+import java.util.Map;
 
 public class PhaseEstimationSheet extends EstimationReportSheet {
 
-    public PhaseEstimationSheet(ExcelWorkbook excelWorkbook) {
-        helper = excelWorkbook;
+    public PhaseEstimationSheet(EstimationMath math, ExcelWorkbook helper) {
+        super(math, helper);
     }
 
     @Override
-    public void getSheet(Estimation estimation, ReportRequest request) {
+    public void getSheet(Estimation estimation, Map<String, String> request) {
         sheet = helper.getWorkbook().createSheet(messageBundle.getString("sheetName.phaseEstimation"));
         configureColumns();
 
@@ -26,7 +27,7 @@ public class PhaseEstimationSheet extends EstimationReportSheet {
             fillPhaseRow(phase, request);
         }
 
-        fillSummary();
+        fillSummary(estimation, request);
     }
 
     private void fillTableHeader() {
@@ -45,19 +46,17 @@ public class PhaseEstimationSheet extends EstimationReportSheet {
         helper.setHeaderCell(row, null, 6);
     }
 
-    private void fillPhaseRow(Phase phase, ReportRequest request) {
+    private void fillPhaseRow(Phase phase, Map<String, String> request) {
         Row row = createRow(ROW_HEIGHT);
         mergeCells(0, 3);
         mergeCells(4, 6);
 
         helper.setCell(row, phase.getName(), 0);
 
-        double sumHoursMax = ReportMath.calcListSummaryMaxHours(phase.getTasks(), request);
-        hoursMaxSummary += sumHoursMax;
+        double sumHoursMax = math.getListSummaryMaxHours(phase.getTasks(), request);
         helper.setCell(row, sumHoursMax, 4);
 
-        double sumCostMax = ReportMath.calcListSummaryMaxCost(phase.getTasks(), request);
-        costMaxSummary += sumCostMax;
+        double sumCostMax = math.getListSummaryMaxCost(phase.getTasks(), request);
         helper.setCell(row, sumCostMax, 7);
 
         helper.setCell(row, null, 1);
@@ -67,14 +66,14 @@ public class PhaseEstimationSheet extends EstimationReportSheet {
         helper.setCell(row, null, 6);
     }
 
-    private void fillSummary() {
+    private void fillSummary(Estimation estimation, Map<String, String> request) {
         Row row = createRow(ROW_HEIGHT);
         mergeCells(0, 3);
         mergeCells(4, 6);
 
         helper.setTotalCell(row, messageBundle.getString("cellName.summary"), 0);
-        helper.setMarkedCell(row, hoursMaxSummary, 4);
-        helper.setMarkedCell(row, costMaxSummary, 7);
+        helper.setMarkedCell(row, math.getEstimationMaxHours(estimation, request), 4);
+        helper.setMarkedCell(row, math.getEstimationMaxCost(estimation, request), 7);
 
         helper.setMarkedCell(row, null, 1);
         helper.setMarkedCell(row, null, 2);

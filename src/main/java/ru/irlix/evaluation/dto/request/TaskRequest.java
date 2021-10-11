@@ -1,10 +1,8 @@
 package ru.irlix.evaluation.dto.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import ru.irlix.evaluation.utils.marker.OnCreate;
+import ru.irlix.evaluation.validation.ValidTask;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
@@ -13,6 +11,8 @@ import javax.validation.constraints.Positive;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
+@ValidTask
 public class TaskRequest {
 
     private String name;
@@ -27,7 +27,6 @@ public class TaskRequest {
     @Positive(message = "{type.positive}")
     private Long type;
 
-    @Positive(message = "{repeatCount.positive}")
     private Integer repeatCount;
 
     @Positive(message = "{roleId.positive}")

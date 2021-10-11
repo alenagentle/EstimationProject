@@ -2,16 +2,16 @@ package ru.irlix.evaluation.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.irlix.evaluation.dao.entity.Phase;
-import ru.irlix.evaluation.dao.entity.Role;
-import ru.irlix.evaluation.dao.entity.Task;
-import ru.irlix.evaluation.dao.entity.TaskTypeDictionary;
+import ru.irlix.evaluation.dao.entity.*;
+import ru.irlix.evaluation.dao.helper.UserHelper;
 import ru.irlix.evaluation.dao.mapper.TaskMapper;
-import ru.irlix.evaluation.dao.mapper.helper.PhaseHelper;
-import ru.irlix.evaluation.dao.mapper.helper.RoleHelper;
-import ru.irlix.evaluation.dao.mapper.helper.TaskTypeHelper;
+import ru.irlix.evaluation.dao.helper.PhaseHelper;
+import ru.irlix.evaluation.dao.helper.RoleHelper;
+import ru.irlix.evaluation.dao.helper.TaskTypeHelper;
 import ru.irlix.evaluation.dto.request.TaskRequest;
 import ru.irlix.evaluation.dto.request.TaskUpdateRequest;
 import ru.irlix.evaluation.dto.response.TaskResponse;
@@ -19,6 +19,7 @@ import ru.irlix.evaluation.exception.NotFoundException;
 import ru.irlix.evaluation.repository.TaskRepository;
 import ru.irlix.evaluation.service.TaskService;
 import ru.irlix.evaluation.utils.constant.EntitiesIdConstants;
+import ru.irlix.evaluation.utils.security.SecurityUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,6 +32,7 @@ public class TaskServiceImpl implements TaskService {
     private final TaskRepository taskRepository;
     private final TaskMapper mapper;
     private final TaskTypeHelper taskTypeHelper;
+    private final UserHelper userHelper;
     private final RoleHelper roleHelper;
     private final PhaseHelper phaseHelper;
 
@@ -38,6 +40,7 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     public TaskResponse createTask(TaskRequest request) {
         Task task = mapper.taskRequestToTask(request);
+        checkAccessToEstimation(task);
         Task savedTask = taskRepository.save(task);
 
         log.info("Task with id " + savedTask.getId() + " saved");
@@ -48,15 +51,17 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     public List<TaskResponse> createTasks(List<TaskRequest> requests) {
         List<Task> tasks = mapper.taskRequestToTask(requests);
-        List<Task> savedTasks = taskRepository.saveAll(tasks);
+        List<Task> taskWithAccess = getTasksWithAccess(tasks);
+        List<Task> savedTasks = taskRepository.saveAll(taskWithAccess);
 
+        log.info("Task list saved");
         return mapper.taskToResponse(savedTasks);
     }
 
     @Override
     @Transactional
     public TaskResponse updateTask(Long id, TaskRequest taskRequest) {
-        Task task = updateTakById(id, taskRequest);
+        Task task = updateTaskById(id, taskRequest);
         Task savedTask = taskRepository.save(task);
 
         log.info("Task with id " + savedTask.getId() + " updated");
@@ -67,19 +72,19 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     public List<TaskResponse> updateTasks(List<TaskUpdateRequest> tasksRequest) {
         List<Task> updatedTasks = tasksRequest.stream()
-                .map(request -> updateTakById(request.getId(), request))
+                .map(request -> updateTaskById(request.getId(), request))
                 .collect(Collectors.toList());
 
-        List<Task> savedTasks = taskRepository.saveAll(updatedTasks);
+        List<Task> tasksWithAccess = getTasksWithAccess(updatedTasks);
+        List<Task> savedTasks = taskRepository.saveAll(tasksWithAccess);
 
         log.info("Task list updated");
         return mapper.taskToResponse(savedTasks);
     }
 
-    private Task updateTakById(Long id, TaskRequest request) {
+    private Task updateTaskById(Long id, TaskRequest request) {
         Task taskToUpdate = findTaskById(id);
         checkAndUpdateFields(taskToUpdate, request);
-
         return taskToUpdate;
     }
 
@@ -108,8 +113,33 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private Task findTaskById(Long id) {
-        return taskRepository.findById(id)
+        Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Task with id " + id + " not found"));
+
+        checkAccessToEstimation(task);
+        return task;
+    }
+
+    private void checkAccessToEstimation(Task task) {
+        String keycloakId = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userHelper.findUserByKeycloakId(keycloakId);
+
+        if (!SecurityUtils.hasAccessToAllEstimations() && !task.getPhase().getEstimation().getUsers().contains(user)) {
+            throw new AccessDeniedException("User with id " + keycloakId + " cant get access to estimation");
+        }
+    }
+
+    private List<Task> getTasksWithAccess(List<Task> tasks) {
+        if (SecurityUtils.hasAccessToAllEstimations()) {
+            return tasks;
+        }
+
+        String keycloakId = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userHelper.findUserByKeycloakId(keycloakId);
+
+        return tasks.stream()
+                .filter(t -> !t.getPhase().getEstimation().getUsers().contains(user))
+                .collect(Collectors.toList());
     }
 
     private void checkAndUpdateFields(Task task, TaskRequest request) {

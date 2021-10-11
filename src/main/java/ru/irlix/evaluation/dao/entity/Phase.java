@@ -29,10 +29,6 @@ public class Phase {
     @JoinColumn(name = "estimation")
     private Estimation estimation;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
-
     @Column(name = "sort_order")
     private Integer sortOrder;
 
@@ -67,4 +63,14 @@ public class Phase {
 
     @Column(name = "risk_reserve_on")
     private Boolean riskReserveOn;
+
+    @PrePersist
+    public void prePersist() {
+        if (riskReserve == null) {
+            riskReserve = 0;
+        }
+        if (riskReserveOn == null) {
+            riskReserveOn = false;
+        }
+    }
 }

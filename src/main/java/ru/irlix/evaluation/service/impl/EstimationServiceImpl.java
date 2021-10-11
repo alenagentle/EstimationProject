@@ -1,41 +1,58 @@
 package ru.irlix.evaluation.service.impl;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.irlix.evaluation.dto.request.EstimationFindAnyRequest;
+import ru.irlix.evaluation.aspect.LogInfo;
 import ru.irlix.evaluation.dao.entity.Estimation;
 import ru.irlix.evaluation.dao.entity.Status;
+import ru.irlix.evaluation.dao.entity.User;
+import ru.irlix.evaluation.dao.helper.FileStorageHelper;
+import ru.irlix.evaluation.dao.helper.StatusHelper;
+import ru.irlix.evaluation.dao.helper.UserHelper;
 import ru.irlix.evaluation.dao.mapper.EstimationMapper;
+import ru.irlix.evaluation.dao.mapper.FileStorageMapper;
 import ru.irlix.evaluation.dao.mapper.PhaseMapper;
 import ru.irlix.evaluation.dto.request.EstimationFilterRequest;
+import ru.irlix.evaluation.dto.request.EstimationPageRequest;
 import ru.irlix.evaluation.dto.request.EstimationRequest;
-import ru.irlix.evaluation.dto.request.ReportRequest;
+import ru.irlix.evaluation.dto.response.EstimationCostResponse;
+import ru.irlix.evaluation.dto.response.EstimationStatsResponse;
 import ru.irlix.evaluation.dto.response.EstimationResponse;
+import ru.irlix.evaluation.dto.response.FileStorageResponse;
 import ru.irlix.evaluation.dto.response.PhaseResponse;
 import ru.irlix.evaluation.exception.NotFoundException;
-import ru.irlix.evaluation.repository.StatusRepository;
 import ru.irlix.evaluation.repository.estimation.EstimationRepository;
 import ru.irlix.evaluation.service.EstimationService;
+import ru.irlix.evaluation.utils.math.EstimationMath;
 import ru.irlix.evaluation.utils.report.ReportHelper;
+import ru.irlix.evaluation.utils.security.SecurityUtils;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @Log4j2
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class EstimationServiceImpl implements EstimationService {
 
-    private EstimationRepository estimationRepository;
-    private StatusRepository statusRepository;
-    private EstimationMapper estimationMapper;
-    private PhaseMapper phaseMapper;
-    private ReportHelper reportHelper;
+    private final EstimationRepository estimationRepository;
+    private final StatusHelper statusHelper;
+    private final UserHelper userHelper;
+    private final EstimationMapper estimationMapper;
+    private final PhaseMapper phaseMapper;
+    private final ReportHelper reportHelper;
+    private final EstimationMath estimationMath;
+    private final FileStorageHelper fileStorageHelper;
+    private final FileStorageMapper fileStorageMapper;
 
+    @LogInfo
     @Override
     @Transactional
     public EstimationResponse createEstimation(EstimationRequest estimationRequest) {
@@ -46,6 +63,7 @@ public class EstimationServiceImpl implements EstimationService {
         return estimationMapper.estimationToEstimationResponse(savedEstimation);
     }
 
+    @LogInfo
     @Override
     @Transactional
     public EstimationResponse updateEstimation(Long id, EstimationRequest estimationRequest) {
@@ -57,30 +75,17 @@ public class EstimationServiceImpl implements EstimationService {
         return estimationMapper.estimationToEstimationResponse(savedEstimation);
     }
 
+    @LogInfo
     @Override
     @Transactional
     public void deleteEstimation(Long id) {
         Estimation estimationToDelete = findEstimationById(id);
+        fileStorageHelper.deleteFilesByEstimation(estimationToDelete);
         estimationRepository.delete(estimationToDelete);
         log.info("Estimation with id " + estimationToDelete.getId() + " deleted");
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<EstimationResponse> findAllEstimations(EstimationFilterRequest request) {
-        Page<Estimation> estimationList = estimationRepository.filter(request);
-        log.info("Estimations filtered and found");
-        return estimationMapper.estimationToEstimationResponse(estimationList);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<EstimationResponse> findAnyEstimations(EstimationFindAnyRequest request) {
-        Page<Estimation> estimationList = estimationRepository.findAny(request);
-        log.info("Estimations filtered and found");
-        return estimationMapper.estimationToEstimationResponse(estimationList);
-    }
-
+    @LogInfo
     @Override
     @Transactional(readOnly = true)
     public EstimationResponse findEstimationResponseById(Long id) {
@@ -89,6 +94,7 @@ public class EstimationServiceImpl implements EstimationService {
         return estimationMapper.estimationToEstimationResponse(estimation);
     }
 
+    @LogInfo
     @Override
     @Transactional(readOnly = true)
     public List<PhaseResponse> findPhaseResponsesByEstimationId(Long id) {
@@ -97,9 +103,36 @@ public class EstimationServiceImpl implements EstimationService {
         return phaseMapper.phaseToPhaseResponse(estimation.getPhases());
     }
 
+    @LogInfo
+    @Override
+    @Transactional(readOnly = true)
+    public Page<EstimationResponse> filterEstimations(EstimationFilterRequest request) {
+        addUserIdToRequestIfRequired(request);
+        Page<Estimation> estimationList = estimationRepository.filter(request);
+        log.info("Estimations filtered and found");
+        return estimationMapper.estimationToEstimationResponse(estimationList);
+    }
+
+    private void addUserIdToRequestIfRequired(EstimationPageRequest request) {
+        if (!SecurityUtils.hasAccessToAllEstimations()) {
+            String keycloakId = SecurityContextHolder.getContext().getAuthentication().getName();
+            Long userId = userHelper.findUserByKeycloakId(keycloakId).getUserId();
+            request.setUserId(userId);
+        }
+    }
+
     private Estimation findEstimationById(Long id) {
-        return estimationRepository.findById(id)
+        Estimation estimation = estimationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Estimation with id " + id + " not found"));
+
+        String keycloakId = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userHelper.findUserByKeycloakId(keycloakId);
+
+        if (!SecurityUtils.hasAccessToAllEstimations() && !estimation.getUsers().contains(user)) {
+            throw new AccessDeniedException("User with id " + keycloakId + " cant get access to estimation");
+        }
+
+        return estimation;
     }
 
     private void checkAndUpdateFields(Estimation estimation, EstimationRequest request) {
@@ -120,23 +153,58 @@ public class EstimationServiceImpl implements EstimationService {
         }
 
         if (request.getStatus() != null) {
-            Status status = statusRepository.findById(request.getStatus())
-                    .orElseThrow(() -> new NotFoundException("Status with id " + request.getStatus() + " not found"));
+            Status status = statusHelper.findStatusById(request.getStatus());
             estimation.setStatus(status);
         }
 
-        if (request.getCreator() != null) {
-            estimation.setCreator(request.getCreator());
+        if (request.getUserIdList() != null) {
+            estimation.setUsers(userHelper.findByUserIdIn(request.getUserIdList()));
+        }
+
+        if (request.getMultipartFiles() != null) {
+            fileStorageHelper.storeFileList(request.getMultipartFiles(), estimation);
         }
     }
 
+    @LogInfo
     @Override
     @Transactional(readOnly = true)
-    public Resource getEstimationsReport(Long id, ReportRequest request) throws IOException {
+    public List<FileStorageResponse> findFileResponsesByEstimationId(Long id) {
+        Estimation estimation = findEstimationById(id);
+        log.info("Files of estimation with id " + estimation.getId() + " found");
+        return fileStorageMapper.fileStoragesToFileStorageList(estimation.getFileStorages());
+    }
+
+    @LogInfo
+    @Override
+    @Transactional(readOnly = true)
+    public Resource getEstimationsReport(Long id, Map<String, String> request) throws IOException {
         Estimation estimation = findEstimationById(id);
         Resource estimationReport = reportHelper.getEstimationReportResource(estimation, request);
 
-        log.info("Estimation report generated");
+        log.info("Estimation report by id " + id + " generated");
         return estimationReport;
+    }
+
+    @LogInfo
+    @Override
+    @Transactional(readOnly = true)
+    public List<EstimationStatsResponse> getEstimationStats(Long id) {
+        Estimation estimation = findEstimationById(id);
+        List<EstimationStatsResponse> estimationStats = estimationMath.getEstimationStats(estimation);
+
+        log.info("Estimation stats by id " + id + " calculated");
+        return estimationStats;
+    }
+
+    @LogInfo
+    @Override
+    @Transactional(readOnly = true)
+    public EstimationCostResponse getEstimationCost(Long id, Map<String, String> request) {
+        Estimation estimation = findEstimationById(id);
+        EstimationCostResponse estimationCost = estimationMath.getEstimationCost(estimation, request);
+
+        log.info("Estimation cost by id" + id + " calculated");
+        return estimationCost;
     }
 }

@@ -1,23 +1,25 @@
 package ru.irlix.evaluation.dto.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.irlix.evaluation.utils.constant.EntitiesIdConstants;
 
+import javax.validation.constraints.Max;
 import javax.validation.constraints.Positive;
+import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class EstimationRequest {
 
     private String name;
 
     private String client;
 
+    @Max(value = 5000, message = "{description.max}")
     private String description;
 
     private Integer risk;
@@ -25,5 +27,8 @@ public class EstimationRequest {
     @Positive(message = "{status.positive}")
     private Long status = EntitiesIdConstants.DEFAULT_STATUS_ID;
 
-    private String creator;
+    private List<Long> userIdList;
+
+    private List<MultipartFile> multipartFiles;
+
 }

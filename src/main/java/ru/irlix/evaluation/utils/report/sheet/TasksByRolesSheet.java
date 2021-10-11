@@ -5,10 +5,9 @@ import ru.irlix.evaluation.dao.entity.Estimation;
 import ru.irlix.evaluation.dao.entity.Phase;
 import ru.irlix.evaluation.dao.entity.Role;
 import ru.irlix.evaluation.dao.entity.Task;
-import ru.irlix.evaluation.dto.request.ReportRequest;
+import ru.irlix.evaluation.utils.math.EstimationMath;
 import ru.irlix.evaluation.utils.report.ExcelWorkbook;
 import ru.irlix.evaluation.utils.report.enums.TableType;
-import ru.irlix.evaluation.utils.report.math.ReportMath;
 
 import java.util.List;
 import java.util.Map;
@@ -16,17 +15,22 @@ import java.util.stream.Collectors;
 
 public class TasksByRolesSheet extends EstimationReportSheet {
 
+    private double hoursMinSummary;
+    private double costMinSummary;
+    private double hoursMaxSummary;
+    private double costMaxSummary;
+
     private double otherTasksMinHoursSummary;
     private double otherTasksMinCostSummary;
     private double otherTasksMaxHoursSummary;
     private double otherTasksMaxCostSummary;
 
-    public TasksByRolesSheet(ExcelWorkbook excelWorkbook) {
-        helper = excelWorkbook;
+    public TasksByRolesSheet(EstimationMath math, ExcelWorkbook helper) {
+        super(math, helper);
     }
 
     @Override
-    public void getSheet(Estimation estimation, ReportRequest request) {
+    public void getSheet(Estimation estimation, Map<String, String> request) {
         sheet = helper.getWorkbook().createSheet(messageBundle.getString("sheetName.featureEstimation"));
         configureColumns();
 
@@ -36,7 +40,7 @@ public class TasksByRolesSheet extends EstimationReportSheet {
 
         for (Phase phase : estimation.getPhases()) {
             List<Task> features = phase.getTasks().stream()
-                    .filter(this::isFeature)
+                    .filter(math::isFeature)
                     .collect(Collectors.toList());
 
             if (features.isEmpty()) {
@@ -50,14 +54,14 @@ public class TasksByRolesSheet extends EstimationReportSheet {
             }
         }
 
-        fillSummary(TableType.DEFAULT_TABLE);
+        fillSummary(TableType.DEFAULT_TABLE, estimation, request);
 
         createRow(super.ROW_HEIGHT);
         fillTableHeader(messageBundle.getString("columnName.tasks"), true);
 
         for (Phase phase : estimation.getPhases()) {
             List<Task> tasks = phase.getTasks().stream()
-                    .filter(t -> !isFeature(t))
+                    .filter(t -> !math.isFeature(t))
                     .collect(Collectors.toList());
 
             if (tasks.isEmpty()) {
@@ -71,10 +75,10 @@ public class TasksByRolesSheet extends EstimationReportSheet {
             }
         }
 
-        fillSummary(TableType.LIGHT_TABLE);
+        fillSummary(TableType.LIGHT_TABLE, estimation, request);
 
         createRow(ROW_HEIGHT);
-        fillSummary(TableType.NONE);
+        fillSummary(TableType.NONE, estimation, request);
     }
 
     private void fillTableHeader(String taskType, boolean isLight) {
@@ -104,14 +108,14 @@ public class TasksByRolesSheet extends EstimationReportSheet {
         }
     }
 
-    private void fillPhaseRow(Phase phase, ReportRequest request, List<Task> tasks, boolean isLight) {
+    private void fillPhaseRow(Phase phase, Map<String, String> request, List<Task> tasks, boolean isLight) {
         Row row = createRow(ROW_HEIGHT);
         mergeCells(0, 2);
 
-        double sumHoursMin = ReportMath.calcListSummaryMinHours(tasks, request);
-        double sumCostMin = ReportMath.calcListSummaryMinCost(tasks, request);
-        double sumHoursMax = ReportMath.calcListSummaryMaxHours(tasks, request);
-        double sumCostMax = ReportMath.calcListSummaryMaxCost(tasks, request);
+        double sumHoursMin = math.getListSummaryMinHours(tasks, request);
+        double sumCostMin = math.getListSummaryMinCost(tasks, request);
+        double sumHoursMax = math.getListSummaryMaxHours(tasks, request);
+        double sumCostMax = math.getListSummaryMaxCost(tasks, request);
 
         if (isLight) {
             helper.setLightCell(row, phase.getName(), 0);
@@ -146,15 +150,15 @@ public class TasksByRolesSheet extends EstimationReportSheet {
         }
     }
 
-    private void fillFeatureRow(Task feature, ReportRequest request) {
+    private void fillFeatureRow(Task feature, Map<String, String> request) {
         Row row = createRow(ROW_HEIGHT);
         mergeCells(1, 2);
 
         helper.setBoldCell(row, feature.getName(), 1);
-        helper.setCell(row, ReportMath.calcFeatureMinHours(feature, request), 3);
-        helper.setCell(row, ReportMath.calcFeatureMinCost(feature, request), 4);
-        helper.setCell(row, ReportMath.calcFeatureMaxHours(feature, request), 5);
-        helper.setCell(row, ReportMath.calcFeatureMaxCost(feature, request), 6);
+        helper.setCell(row, math.getFeatureMinHours(feature, request), 3);
+        helper.setCell(row, math.getFeatureMinCost(feature, request), 4);
+        helper.setCell(row, math.getFeatureMaxHours(feature, request), 5);
+        helper.setCell(row, math.getFeatureMaxCost(feature, request), 6);
         helper.setCell(row, feature.getComment(), 7);
 
         helper.setCell(row, null, 0);
@@ -162,15 +166,15 @@ public class TasksByRolesSheet extends EstimationReportSheet {
         fillRoleRow(feature.getTasks(), request);
     }
 
-    private void fillTaskRow(Task task, ReportRequest request) {
+    private void fillTaskRow(Task task, Map<String, String> request) {
         Row row = createRow(ROW_HEIGHT);
         mergeCells(1, 2);
 
         helper.setCell(row, task.getName(), 1);
-        helper.setCell(row, ReportMath.calcTaskMinHoursWithQaAndPm(task, request), 3);
-        helper.setCell(row, ReportMath.calcTaskMinCostWithQaAndPm(task, request), 4);
-        helper.setCell(row, ReportMath.calcTaskMaxHoursWithQaAndPm(task, request), 5);
-        helper.setCell(row, ReportMath.calcTaskMaxCostWithQaAndPm(task, request), 6);
+        helper.setCell(row, math.getTaskMinHours(task, request), 3);
+        helper.setCell(row, math.getTaskMinCost(task, request), 4);
+        helper.setCell(row, math.getTaskMaxHours(task, request), 5);
+        helper.setCell(row, math.getTaskMaxCost(task, request), 6);
         helper.setCell(row, task.getComment(), 7);
 
         helper.setCell(row, null, 0);
@@ -179,41 +183,41 @@ public class TasksByRolesSheet extends EstimationReportSheet {
         fillRoleRow(task, request);
     }
 
-    private void fillRoleRow(Task task, ReportRequest request) {
+    private void fillRoleRow(Task task, Map<String, String> request) {
         Row row = createRow(ROW_HEIGHT);
 
         helper.setCell(row, task.getRole().getDisplayValue(), 2);
-        helper.setCell(row, ReportMath.calcTaskMinHours(task, request), 3);
-        helper.setCell(row, ReportMath.calcTaskMinCost(task, request), 4);
-        helper.setCell(row, ReportMath.calcTaskMaxHours(task, request), 5);
-        helper.setCell(row, ReportMath.calcTaskMaxCost(task, request), 6);
+        helper.setCell(row, math.getTaskMinHoursWithoutQaAndPm(task, request), 3);
+        helper.setCell(row, math.getTaskMinCostWithoutQaAndPm(task, request), 4);
+        helper.setCell(row, math.getTaskMaxHoursWithoutQaAndPm(task, request), 5);
+        helper.setCell(row, math.getTaskMaxCostWithoutQaAndPm(task, request), 6);
 
         helper.setCell(row, null, 0);
         helper.setCell(row, null, 1);
         helper.setCell(row, null, 7);
 
-        if (ReportMath.calcQaMaxHours(task, request) > 0) {
+        if (math.getQaMaxHours(task, request) > 0) {
             row = createRow(ROW_HEIGHT);
 
             helper.setCell(row, messageBundle.getString("cellName.tester"), 2);
-            helper.setCell(row, ReportMath.calcQaMinHours(task, request), 3);
-            helper.setCell(row, ReportMath.calcQaMinCost(task, request), 4);
-            helper.setCell(row, ReportMath.calcQaMaxHours(task, request), 5);
-            helper.setCell(row, ReportMath.calcQaMaxCost(task, request), 6);
+            helper.setCell(row, math.getQaMinHours(task, request), 3);
+            helper.setCell(row, math.getQaMinCost(task, request), 4);
+            helper.setCell(row, math.getQaMaxHours(task, request), 5);
+            helper.setCell(row, math.getQaMaxCost(task, request), 6);
 
             helper.setCell(row, null, 0);
             helper.setCell(row, null, 1);
             helper.setCell(row, null, 7);
         }
 
-        if (ReportMath.calcPmMaxCost(task, request) > 0) {
+        if (math.getPmMaxHours(task, request) > 0) {
             row = createRow(ROW_HEIGHT);
 
             helper.setCell(row, messageBundle.getString("cellName.manager"), 2);
-            helper.setCell(row, ReportMath.calcPmMinHours(task, request), 3);
-            helper.setCell(row, ReportMath.calcPmMinCost(task, request), 4);
-            helper.setCell(row, ReportMath.calcPmMaxHours(task, request), 5);
-            helper.setCell(row, ReportMath.calcPmMaxCost(task, request), 6);
+            helper.setCell(row, math.getPmMinHours(task, request), 3);
+            helper.setCell(row, math.getPmMinCost(task, request), 4);
+            helper.setCell(row, math.getPmMaxHours(task, request), 5);
+            helper.setCell(row, math.getPmMaxCost(task, request), 6);
 
             helper.setCell(row, null, 0);
             helper.setCell(row, null, 1);
@@ -221,44 +225,52 @@ public class TasksByRolesSheet extends EstimationReportSheet {
         }
     }
 
-    private void fillRoleRow(List<Task> tasks, ReportRequest request) {
+    private void fillRoleRow(List<Task> tasks, Map<String, String> request) {
         Map<Role, List<Task>> tasksByRole = tasks.stream().collect(Collectors.groupingBy(Task::getRole));
 
         for (Role role : tasksByRole.keySet()) {
             Row row = createRow(ROW_HEIGHT);
             helper.setCell(row, role.getDisplayValue(), 2);
-            helper.setCell(row, ReportMath.calcListSummaryMinHoursWithoutQaAndPm(tasksByRole.get(role), request), 3);
-            helper.setCell(row, ReportMath.calcListSummaryMinCostWithoutQaAndPm(tasksByRole.get(role), request), 4);
-            helper.setCell(row, ReportMath.calcListSummaryMaxHoursWithoutQaAndPm(tasksByRole.get(role), request), 5);
-            helper.setCell(row, ReportMath.calcListSummaryMaxCostWithoutQaAndPm(tasksByRole.get(role), request), 6);
+
+            double minHours = math.getListSummaryMinHoursWithoutQaAndPm(tasksByRole.get(role), request);
+            helper.setCell(row, minHours, 3);
+
+            double minCost = math.getListSummaryMinCostWithoutQaAndPm(tasksByRole.get(role), request);
+            helper.setCell(row, minCost, 4);
+
+            double maxHours = math.getListSummaryMaxHoursWithoutQaAndPm(tasksByRole.get(role), request);
+            helper.setCell(row, maxHours, 5);
+
+            double maxCost = math.getListSummaryMaxCostWithoutQaAndPm(tasksByRole.get(role), request);
+            helper.setCell(row, maxCost, 6);
 
             helper.setCell(row, null, 0);
             helper.setCell(row, null, 1);
             helper.setCell(row, null, 7);
         }
 
-        if (ReportMath.calcQaSummaryMaxHours(tasks, request) > 0) {
+        if (math.getQaSummaryMaxHours(tasks, request) > 0) {
             Row row = createRow(ROW_HEIGHT);
 
             helper.setCell(row, messageBundle.getString("cellName.tester"), 2);
-            helper.setCell(row, ReportMath.calcQaSummaryMinHours(tasks, request), 3);
-            helper.setCell(row, ReportMath.calcQaSummaryMinCost(tasks, request), 4);
-            helper.setCell(row, ReportMath.calcQaSummaryMaxHours(tasks, request), 5);
-            helper.setCell(row, ReportMath.calcQaSummaryMaxCost(tasks, request), 6);
+            helper.setCell(row, math.getQaSummaryMinHours(tasks, request), 3);
+            helper.setCell(row, math.getQaSummaryMinCost(tasks, request), 4);
+            helper.setCell(row, math.getQaSummaryMaxHours(tasks, request), 5);
+            helper.setCell(row, math.getQaSummaryMaxCost(tasks, request), 6);
 
             helper.setCell(row, null, 0);
             helper.setCell(row, null, 1);
             helper.setCell(row, null, 7);
         }
 
-        if (ReportMath.calcPmSummaryMaxHours(tasks, request) > 0) {
+        if (math.getPmSummaryMaxHours(tasks, request) > 0) {
             Row row = createRow(ROW_HEIGHT);
 
             helper.setCell(row, messageBundle.getString("cellName.manager"), 2);
-            helper.setCell(row, ReportMath.calcPmSummaryMinHours(tasks, request), 3);
-            helper.setCell(row, ReportMath.calcPmSummaryMinCost(tasks, request), 4);
-            helper.setCell(row, ReportMath.calcPmSummaryMaxHours(tasks, request), 5);
-            helper.setCell(row, ReportMath.calcPmSummaryMaxCost(tasks, request), 6);
+            helper.setCell(row, math.getPmSummaryMinHours(tasks, request), 3);
+            helper.setCell(row, math.getPmSummaryMinCost(tasks, request), 4);
+            helper.setCell(row, math.getPmSummaryMaxHours(tasks, request), 5);
+            helper.setCell(row, math.getPmSummaryMaxCost(tasks, request), 6);
 
             helper.setCell(row, null, 0);
             helper.setCell(row, null, 1);
@@ -266,7 +278,7 @@ public class TasksByRolesSheet extends EstimationReportSheet {
         }
     }
 
-    private void fillSummary(TableType tableType) {
+    private void fillSummary(TableType tableType, Estimation estimation, Map<String, String> request) {
         Row row = createRow(ROW_HEIGHT);
         mergeCells(0, 2);
 
@@ -295,10 +307,10 @@ public class TasksByRolesSheet extends EstimationReportSheet {
                 break;
             case NONE:
                 helper.setTotalCell(row, messageBundle.getString("cellName.summary"), 0);
-                helper.setMarkedCell(row, otherTasksMinHoursSummary + hoursMinSummary, 3);
-                helper.setMarkedCell(row, otherTasksMinCostSummary + costMinSummary, 4);
-                helper.setMarkedCell(row, otherTasksMaxHoursSummary + hoursMaxSummary, 5);
-                helper.setMarkedCell(row, otherTasksMaxCostSummary + costMaxSummary, 6);
+                helper.setMarkedCell(row, math.getEstimationMinHours(estimation, request), 3);
+                helper.setMarkedCell(row, math.getEstimationMinCost(estimation, request), 4);
+                helper.setMarkedCell(row, math.getEstimationMaxHours(estimation, request), 5);
+                helper.setMarkedCell(row, math.getEstimationMaxCost(estimation, request), 6);
 
                 helper.setMarkedCell(row, null, 1);
                 helper.setMarkedCell(row, null, 2);

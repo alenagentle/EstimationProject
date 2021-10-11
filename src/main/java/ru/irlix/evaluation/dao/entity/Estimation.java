@@ -2,6 +2,7 @@ package ru.irlix.evaluation.dao.entity;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
@@ -12,6 +13,7 @@ import java.util.List;
 @Table(name="estimation")
 @Getter
 @Setter
+@ToString
 @NamedEntityGraph(
     name = "estimation.phases",
     attributeNodes = @NamedAttributeNode("phases")
@@ -50,14 +52,15 @@ public class Estimation {
     @OrderBy("sortOrder ASC")
     private List<Phase> phases;
 
-    @ManyToMany(mappedBy = "estimations")
+    @ManyToMany
+    @JoinTable(
+            name = "user_estimation",
+            joinColumns = @JoinColumn(name = "estimation_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id"))
     private List<User> users;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinTable(name = "user_estimation",
-            joinColumns = @JoinColumn(name = "estimation_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Role role;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "estimation")
+    private List<FileStorage> fileStorages;
 
     @PrePersist
     public void prePersist() {
